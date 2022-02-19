@@ -127,7 +127,6 @@ func uploadPackageHandler(r *http.Request) requestResult {
 
 	zipReader, err := zip.NewReader(bytes.NewReader(reqBody), int64(len(reqBody)))
 	if err != nil {
-		log.Println(reqBody)
 		return requestResult{code: http.StatusInternalServerError, error: "Cannot read ZIP content: " + err.Error()}
 	}
 
@@ -174,7 +173,7 @@ func uploadPackageHandler(r *http.Request) requestResult {
 
 	// TODO: Handle existing package for that specific version
 	packagePath := packageDirectory + "/" + packageName + "/" + packageVersion
-	log.Println(packagePath)
+	log.Println("Adding package: " + packagePath)
 	os.MkdirAll(packagePath, os.ModePerm)
 
 	err = os.WriteFile(packagePath+"/package.zip", reqBody, 0755)

@@ -46,7 +46,10 @@ func JSONResponse(contentFunc requestHandler) http.HandlerFunc {
 			content = errorContent
 		}
 
-		json.NewEncoder(w).Encode(content)
+		err := json.NewEncoder(w).Encode(content)
+		if err != nil {
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		}
 	})
 }
 
@@ -176,7 +179,10 @@ func uploadPackageHandler(r *http.Request) requestResult {
 	// TODO: Handle existing package for that specific version
 	packagePath := packageDirectory + "/" + packageName + "/" + packageVersion
 	log.Println("Adding package: " + packagePath)
-	os.MkdirAll(packagePath, os.ModePerm)
+	err = os.MkdirAll(packagePath, os.ModePerm)
+	if err != nil {
+		return requestResult{code: http.StatusInternalServerError, error: "Cannot create package folder: " + err.Error()}
+	}
 
 	err = os.WriteFile(packagePath+"/package.zip", reqBody, 0755)
 	if err != nil {
@@ -197,9 +203,7 @@ func handlePackageRequest(w http.ResponseWriter, r *http.Request) {
 	requestUrlParts := strings.Split(r.URL.Path, "/")
 
 	if len(requestUrlParts) < 4 {
-		w.WriteHeader(http.StatusBadRequest)
-
-		fmt.Fprintf(w, http.StatusText(http.StatusBadRequest))
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
 
 		return
 	}
@@ -210,18 +214,14 @@ func handlePackageRequest(w http.ResponseWriter, r *http.Request) {
 
 	packagePath := path.Join(packageDirectory, packageVendor, packageName, packageVersion, "package.zip")
 	if _, err := os.Stat(packagePath); os.IsNotExist(err) {
-		w.WriteHeader(http.StatusNotFound)
-
-		fmt.Fprintf(w, http.StatusText(http.StatusNotFound))
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 
 		return
 	}
 
 	packageContent, err := ioutil.ReadFile(packagePath)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-
-		fmt.Fprintf(w, http.StatusText(http.StatusInternalServerError))
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 
 		return
 	}
@@ -231,7 +231,12 @@ func handlePackageRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Length", fmt.Sprint(len(packageContent)))
 	w.WriteHeader(http.StatusOK)
 
-	w.Write(packageContent)
+	_, err = w.Write(packageContent)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+
+		return
+	}
 }
 
 type basicAuth struct {

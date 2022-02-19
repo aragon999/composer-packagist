@@ -3,6 +3,8 @@ package main
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -232,14 +234,61 @@ func handlePackageRequest(w http.ResponseWriter, r *http.Request) {
 	w.Write(packageContent)
 }
 
+type basicAuth struct {
+	username string
+	password string
+}
+
+func (auth *basicAuth) Authenticate(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		username, password, ok := r.BasicAuth()
+		if ok {
+			usernameHash := sha256.Sum256([]byte(username))
+			passwordHash := sha256.Sum256([]byte(password))
+			expectedUsernameHash := sha256.Sum256([]byte(auth.username))
+			expectedPasswordHash := sha256.Sum256([]byte(auth.password))
+
+			usernameMatch := (subtle.ConstantTimeCompare(usernameHash[:], expectedUsernameHash[:]) == 1)
+			passwordMatch := (subtle.ConstantTimeCompare(passwordHash[:], expectedPasswordHash[:]) == 1)
+
+			if usernameMatch && passwordMatch {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+
+		w.Header().Set("WWW-Authenticate", `Basic realm="restricted", charset="UTF-8"`)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	})
+}
+
 func main() {
 	mux := http.NewServeMux()
 
-	mux.Handle("/packages.json", JSONResponse(packagesJsonHandler))
-	mux.HandleFunc("/package/", handlePackageRequest)
+	userBasicAuth := basicAuth{username: os.Getenv("USER_AUTH_USERNAME"), password: os.Getenv("USER_AUTH_PASSWORD")}
+	if userBasicAuth.username == "" {
+		log.Fatal("User basic auth username must be provided in USER_AUTH_USERNAME")
+	}
+	if userBasicAuth.password == "" {
+		log.Fatal("User basic auth password must be provided USER_AUTH_PASSWORD")
+	}
 
-	// TODO: Secure admin upload
-	mux.Handle("/admin/upload", JSONResponse(uploadPackageHandler))
+	adminBasicAuth := basicAuth{username: os.Getenv("ADMIN_AUTH_USERNAME"), password: os.Getenv("ADMIN_AUTH_PASSWORD")}
+	if adminBasicAuth.username == "" {
+		log.Fatal("Admin basic auth username must be provided in ADMIN_AUTH_USERNAME")
+	}
+	if adminBasicAuth.password == "" {
+		log.Fatal("Admin basic auth password must be provided ADMIN_AUTH_PASSWORD")
+	}
+
+	// General available routes
+	mux.Handle("/packages.json", JSONResponse(packagesJsonHandler))
+
+	// Password protected user routes
+	mux.Handle("/package/", userBasicAuth.Authenticate(handlePackageRequest))
+
+	// Password protected admin routes
+	mux.Handle("/admin/upload", adminBasicAuth.Authenticate(JSONResponse(uploadPackageHandler)))
 
 	log.Println("Listening to :3000")
 	log.Fatal(http.ListenAndServe(":3000", mux))

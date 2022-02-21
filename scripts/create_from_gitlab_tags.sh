@@ -92,7 +92,6 @@ fi
 for tag in "${project_tags[@]}"; do
     artifact_path="${download_dir}/${tag}-${artifact_name}"
     echo "Downloading ${artifact_name} for tag ${tag} to ${artifact_path}"
-    echo curl -s --location --output "${artifact_path}" --header "PRIVATE-TOKEN: ${gitlab_token}" "${gitlab_url}/api/v4/projects/${project_id}/jobs/artifacts/${tag}/raw/${artifact_name}?job=${job_name}"
     curl -s --location --output "${artifact_path}" --header "PRIVATE-TOKEN: ${gitlab_token}" "${gitlab_url}/api/v4/projects/${project_id}/jobs/artifacts/${tag}/raw/${artifact_name}?job=${job_name}"
 
     if [[ -f ${artifact_path} ]] && [[ "$(file -b --mime-type "${artifact_path}")" == "application/zip" ]]; then

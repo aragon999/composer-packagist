@@ -45,7 +45,7 @@ Upload a package using
 ```
 $ curl -u <admin-user>:<admin-password> --data-binary @my-package.zip http://localhost:3000/admin/upload
 ```
-and download it again using
+and download it as `<vendor>-<package-name>.zip` using
 ```
 $ curl -u <package-user>:<package-password> --remote-header-name -O http://localhost:3000/package/<vendor>/<package-name>/<package-version>
 ```

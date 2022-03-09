@@ -47,7 +47,7 @@ $ curl -u <admin-user>:<admin-password> --data-binary @my-package.zip http://loc
 ```
 and download it again using
 ```
-$ curl -u <package-user>:<package-password> http://localhost:3000/package/<vendor>/<package-name>/<package-version>
+$ curl -u <package-user>:<package-password> --output my-package.zip http://localhost:3000/package/<vendor>/<package-name>/<package-version>
 ```
 
 To use composer to install the package create a new directory somewhere and run inside that

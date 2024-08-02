@@ -59,6 +59,9 @@ $ composer require <vendor>/<package-name>:<package-version>
 ```
 Note that if you deploy this on a web-server, you probably want to use a reverse proxy for SSL termination. Currently there is the limitation that the generated package URL is always with `http`, which will be fixed in the future, or feel free to create a pull request.
 
+### Secure connection
+The environment variable `IS_SECURE={1,true}` can be used to specify if the `https` protocol should be used, but no TLS termination is performed, so it should be hosted behind a HTTP proxy.
+
 
 ## API Endpoints
 ### `GET /packages.json`

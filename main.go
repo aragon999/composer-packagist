@@ -67,6 +67,11 @@ func packagesJsonHandler(r *http.Request) requestResult {
 	// [Package name: [package version: composer.json]]
 	var packages = make(map[string]map[string]interface{})
 
+	var scheme = "http"
+	if os.Getenv("IS_SECURE") == "1" || os.Getenv("IS_SECURE") == "true" {
+		scheme = "https"
+	}
+
 	packageVendors, _ := os.ReadDir(packageDirectory)
 	for _, packageVendor := range packageVendors {
 		if !packageVendor.IsDir() {
@@ -103,8 +108,7 @@ func packagesJsonHandler(r *http.Request) requestResult {
 				}
 
 				packageUrl := url.URL{
-					// TODO: Scheme should be dynamic
-					Scheme: "http",
+					Scheme: scheme,
 					Host:   r.Host,
 					Path:   "package/" + packageVendor.Name() + "/" + packageName.Name() + "/" + packageVersion.Name(),
 				}

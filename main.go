@@ -7,7 +7,7 @@ import (
 	"crypto/subtle"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -67,21 +67,21 @@ func packagesJsonHandler(r *http.Request) requestResult {
 	// [Package name: [package version: composer.json]]
 	var packages = make(map[string]map[string]interface{})
 
-	packageVendors, _ := ioutil.ReadDir(packageDirectory)
+	packageVendors, _ := os.ReadDir(packageDirectory)
 	for _, packageVendor := range packageVendors {
 		if !packageVendor.IsDir() {
 			continue
 		}
 
 		packageVendorFolder := path.Join(packageDirectory, packageVendor.Name())
-		packageNames, _ := ioutil.ReadDir(packageVendorFolder)
+		packageNames, _ := os.ReadDir(packageVendorFolder)
 		for _, packageName := range packageNames {
 			if !packageName.IsDir() {
 				continue
 			}
 
 			packageNameFolder := path.Join(packageVendorFolder, packageName.Name())
-			packageVersions, _ := ioutil.ReadDir(packageNameFolder)
+			packageVersions, _ := os.ReadDir(packageNameFolder)
 
 			var packageVersionMap = make(map[string]interface{})
 			for _, packageVersion := range packageVersions {
@@ -90,7 +90,7 @@ func packagesJsonHandler(r *http.Request) requestResult {
 					continue
 				}
 
-				composerJsonFileContent, err := ioutil.ReadFile(composerJsonPath)
+				composerJsonFileContent, err := os.ReadFile(composerJsonPath)
 				// TODO: Handle different and throw error?
 				if err != nil {
 					continue
@@ -125,7 +125,7 @@ func uploadPackageHandler(r *http.Request) requestResult {
 		return requestResult{code: http.StatusMethodNotAllowed}
 	}
 
-	reqBody, err := ioutil.ReadAll(r.Body)
+	reqBody, err := io.ReadAll(r.Body)
 	if err != nil {
 		return requestResult{code: http.StatusInternalServerError, error: "Cannot read request body: " + err.Error()}
 	}
@@ -146,7 +146,7 @@ func uploadPackageHandler(r *http.Request) requestResult {
 
 			defer f.Close()
 
-			fileContent, err := ioutil.ReadAll(f)
+			fileContent, err := io.ReadAll(f)
 			if err != nil {
 				return requestResult{code: http.StatusInternalServerError, error: "Cannot read composer.json: " + err.Error()}
 			}
@@ -219,7 +219,7 @@ func handlePackageRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	packageContent, err := ioutil.ReadFile(packagePath)
+	packageContent, err := os.ReadFile(packagePath)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 

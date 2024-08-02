@@ -1,3 +1,3 @@
 module github.com/aragon999/composer-packagist
 
-go 1.17
+go 1.22
